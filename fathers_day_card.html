@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>С Днём Отца! 🎵</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #1a0a00;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── ENVELOPE SCREEN ─── */
+        #envelope-screen {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 60%, #ff8c42 0%, #c85c1a 45%, #7a2e00 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            z-index: 200;
+            transition: opacity 0.9s ease, transform 0.9s ease;
+        }
+        #envelope-screen.hide {
+            opacity: 0;
+            transform: scale(1.08);
+            pointer-events: none;
+        }
+
+        /* floating background notes */
+        .bg-note {
+            position: absolute;
+            pointer-events: none;
+            user-select: none;
+            animation: bgFloat linear infinite;
+            opacity: 0;
+        }
+        @keyframes bgFloat {
+            0%   { opacity: 0; transform: translateY(0) rotate(0deg) scale(0.8); }
+            15%  { opacity: 0.35; }
+            85%  { opacity: 0.2; }
+            100% { opacity: 0; transform: translateY(-105vh) rotate(180deg) scale(1.2); }
+        }
+
+        /* Envelope wrapper */
+        .env-wrap {
+            position: relative;
+            width: 340px;
+            height: 225px;
+            cursor: pointer;
+            filter: drop-shadow(0 24px 48px rgba(0,0,0,0.45));
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .env-wrap:hover { transform: translateY(-6px) scale(1.02); }
+
+        /* envelope body */
+        .env-body {
+            position: absolute;
+            inset: 0;
+            background: #fff9ef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        /* left & right triangles */
+        .env-tri-left, .env-tri-right {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 50%;
+        }
+        .env-tri-left {
+            left: 0;
+            background: linear-gradient(to right, #ffe09a, transparent);
+            clip-path: polygon(0 0, 0 100%, 100% 50%);
+        }
+        .env-tri-right {
+            right: 0;
+            background: linear-gradient(to left, #ffc94a, transparent);
+            clip-path: polygon(100% 0, 100% 100%, 0 50%);
+        }
+        /* bottom V */
+        .env-tri-bottom {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 60%;
+            background: linear-gradient(to bottom, transparent 0%, #ffeab0 100%);
+            clip-path: polygon(0 100%, 50% 0%, 100% 100%);
+        }
+
+        /* card peeking */
+        .env-card-peek {
+            position: absolute;
+            left: 50%;
+            top: 14px;
+            transform: translateX(-50%);
+            width: 82%;
+            height: 78%;
+            background: linear-gradient(145deg, #fff6e8, #ffe9c4);
+            border-radius: 8px;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .env-wrap.opened .env-card-peek {
+            transform: translateX(-50%) translateY(-160px);
+        }
+
+        /* flap */
+        .env-flap {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 130px;
+            z-index: 4;
+            perspective: 600px;
+        }
+        .env-flap-inner {
+            width: 100%;
+            height: 100%;
+            background: #ffd166;
+            clip-path: polygon(0 0, 50% 75%, 100% 0);
+            transform-origin: top center;
+            transition: transform 0.75s ease;
+            backface-visibility: hidden;
+        }
+        .env-wrap.opened .env-flap-inner {
+            transform: rotateX(-175deg);
+        }
+
+        /* hint text */
+        .env-hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 0.06em;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            animation: hintPulse 2s ease infinite;
+        }
+        @keyframes hintPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(0.96); }
+        }
+
+        /* ─── CARD SCREEN ─── */
+        #card-screen {
+            position: relative;
+            min-height: 100vh;
+            background: linear-gradient(170deg, #fff9f0 0%, #fff3e0 35%, #ffe4c4 70%, #ffd5a8 100%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease 0.5s;
+            padding-bottom: 60px;
+        }
+        #card-screen.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .card-inner {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 50px 24px 40px;
+        }
+
+        /* floating notes on card screen */
+        .card-note {
+            position: fixed;
+            pointer-events: none;
+            user-select: none;
+            animation: cardNoteFloat linear forwards;
+            z-index: 0;
+        }
+        @keyframes cardNoteFloat {
+            0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
+            20%  { opacity: 0.4; }
+            80%  { opacity: 0.2; }
+            100% { opacity: 0; transform: translateY(-110vh) rotate(200deg); }
+        }
+
+        /* ── Header ── */
+        .ch {
+            text-align: center;
+            margin-bottom: 36px;
+            position: relative;
+        }
+        .ch-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.6rem, 8vw, 4.2rem);
+            font-weight: 900;
+            color: #b84e0f;
+            line-height: 1.05;
+            text-shadow: 3px 3px 0 rgba(184,78,15,0.15);
+            margin-bottom: 10px;
+        }
+        .ch-sub {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e07040;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        /* ── Ukulele ── */
+        .uke-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0 36px;
+        }
+        .uke-wrap {
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+            transition: filter 0.3s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .uke-wrap:hover { filter: drop-shadow(0 8px 20px rgba(200,92,26,0.4)); }
+        .uke-svg {
+            transition: transform 0.3s ease;
+            display: block;
+        }
+        .uke-wrap:hover .uke-svg { transform: rotate(-4deg) scale(1.04); }
+        .uke-wrap.strumming .uke-svg {
+            animation: strumAnim 0.45s ease;
+        }
+        @keyframes strumAnim {
+            0%  { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(-10deg) scale(1.06); }
+            60% { transform: rotate(7deg) scale(1.06); }
+            100%{ transform: rotate(0deg) scale(1); }
+        }
+        .uke-hint {
+            margin-top: 10px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #c85c1a;
+            letter-spacing: 0.04em;
+            opacity: 0.8;
+        }
+
+        /* flying note from ukulele */
+        .fly-note {
+            position: fixed;
+            pointer-events: none;
+            font-size: 1.6rem;
+            animation: flyOut 1.4s ease-out forwards;
+            z-index: 9999;
+        }
+        @keyframes flyOut {
+            0%   { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.4) rotate(var(--rot)); }
+        }
+
+        /* ── Gallery ── */
+        .gallery {
+            background: white;
+            border-radius: 28px;
+            padding: 28px 24px 24px;
+            box-shadow: 0 10px 40px rgba(184,78,15,0.12);
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+        .gallery-heading {
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #b84e0f;
+            margin-bottom: 18px;
+        }
+
+        .slideshow {
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #f5e8d5;
+            aspect-ratio: 4 / 3;
+        }
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.65s ease;
+        }
+        .slide.active { opacity: 1; }
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .snav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.88);
+            border: none;
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            color: #b84e0f;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .snav:hover { background: white; transform: translateY(-50%) scale(1.12); }
+        .snav.prev { left: 10px; }
+        .snav.next { right: 10px; }
+
+        .scounter {
+            position: absolute;
+            bottom: 10px;
+            right: 14px;
+            background: rgba(0,0,0,0.48);
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .slide-caption {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 65%, transparent 100%);
+            color: white;
+            padding: 36px 18px 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.45;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.7);
+            letter-spacing: 0.01em;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .thumbs {
+            display: flex;
+            gap: 7px;
+            margin-top: 14px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: #f5a623 #f5e8d5;
+        }
+        .thumb {
+            flex-shrink: 0;
+            width: 58px; height: 58px;
+            border-radius: 9px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+        .thumb.active { border-color: #f5a623; transform: scale(1.08); }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* ── Message ── */
+        .msg {
+            background: linear-gradient(140deg, #c85c1a, #f76b1c 60%, #ff9a4a);
+            border-radius: 28px;
+            padding: 36px 32px;
+            color: white;
+            text-align: center;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 12px 40px rgba(200,92,26,0.3);
+        }
+        .msg::before {
+            content: '♩ ♫ ♬ ♪';
+            position: absolute;
+            top: 14px; left: 20px;
+            font-size: 1.8rem;
+            opacity: 0.15;
+            letter-spacing: 0.2em;
+        }
+        .msg::after {
+            content: '♪ ♬ ♫ ♩';
+            position: absolute;
+            bottom: 14px; right: 20px;
+            font-size: 1.8rem;
+            opacity: 0.15;
+            letter-spacing: 0.2em;
+        }
+        .msg-hearts {
+            font-size: 2.2rem;
+            letter-spacing: 0.25em;
+            margin-bottom: 20px;
+            display: block;
+            animation: heartBeat 1.6s ease infinite;
+        }
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            40%  { transform: scale(1.12); }
+            55%  { transform: scale(1.06); }
+        }
+        .msg-text {
+            font-size: 1.1rem;
+            line-height: 1.85;
+            font-weight: 400;
+            margin-bottom: 22px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .msg-guitars {
+            font-size: 2rem;
+            letter-spacing: 0.3em;
+            margin-bottom: 18px;
+        }
+        .msg-sign {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #c85c1a;
+            opacity: 0.55;
+            font-weight: 600;
+            padding: 10px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Confetti ── */
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 2px;
+            animation: confFall linear forwards;
+            z-index: 9998;
+        }
+        @keyframes confFall {
+            0%   { opacity: 1; transform: translateY(-30px) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(105vh) rotate(720deg); }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+            .env-wrap { width: 290px; height: 195px; }
+            .env-flap { height: 112px; }
+            .env-card-peek { font-size: 2.4rem; }
+            .env-wrap.opened .env-card-peek { transform: translateX(-50%) translateY(-130px); }
+            .card-inner { padding: 36px 16px 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ ENVELOPE SCREEN ═══ -->
+<div id="envelope-screen" onclick="openEnvelope()">
+    <div id="bgNotes"></div>
+
+    <div class="env-wrap" id="envelope">
+        <div class="env-body">
+            <div class="env-tri-left"></div>
+            <div class="env-tri-right"></div>
+            <div class="env-tri-bottom"></div>
+            <div class="env-card-peek" id="cardPeek">🎵</div>
+        </div>
+        <div class="env-flap">
+            <div class="env-flap-inner"></div>
+        </div>
+    </div>
+
+    <p class="env-hint">✨ Нажми, чтобы открыть ✨</p>
+</div>
+
+<!-- ═══════════════════════════════════ CARD SCREEN ═══════ -->
+<div id="card-screen">
+    <div id="cardNotes"></div>
+
+    <div class="card-inner">
+
+        <!-- Header -->
+        <div class="ch">
+            <div class="ch-title">С Днём<br>Отца! 🎵</div>
+            <div class="ch-sub">для самого классного папы</div>
+        </div>
+
+        <!-- Ukulele -->
+        <div class="uke-section">
+            <div class="uke-wrap" id="ukulele" onclick="strum(event)" title="Нажми и сыграй!">
+                <svg class="uke-svg" width="150" height="310" viewBox="0 0 150 310" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Head -->
+                    <rect x="59" y="2" width="32" height="44" rx="10" fill="#5a2d0c"/>
+                    <!-- Tuning pegs -->
+                    <rect x="50" y="10" width="12" height="7" rx="3.5" fill="#b87333"/>
+                    <rect x="88" y="10" width="12" height="7" rx="3.5" fill="#b87333"/>
+                    <rect x="50" y="28" width="12" height="7" rx="3.5" fill="#b87333"/>
+                    <rect x="88" y="28" width="12" height="7" rx="3.5" fill="#b87333"/>
+                    <!-- Nut -->
+                    <rect x="62" y="43" width="26" height="5" rx="2.5" fill="#f0ddb0"/>
+                    <!-- Neck -->
+                    <rect x="65" y="46" width="20" height="150" rx="6" fill="#7a3e18"/>
+                    <!-- Frets -->
+                    <rect x="63" y="72"  width="24" height="2.5" rx="1.25" fill="#f0ddb0" opacity="0.7"/>
+                    <rect x="63" y="95"  width="24" height="2.5" rx="1.25" fill="#f0ddb0" opacity="0.7"/>
+                    <rect x="63" y="116" width="24" height="2.5" rx="1.25" fill="#f0ddb0" opacity="0.7"/>
+                    <rect x="63" y="135" width="24" height="2.5" rx="1.25" fill="#f0ddb0" opacity="0.7"/>
+                    <rect x="63" y="152" width="24" height="2.5" rx="1.25" fill="#f0ddb0" opacity="0.7"/>
+                    <!-- Body -->
+                    <ellipse cx="75" cy="240" rx="58" ry="68" fill="#c0632a"/>
+                    <ellipse cx="75" cy="240" rx="52" ry="62" fill="#d97838"/>
+                    <!-- Body sheen -->
+                    <ellipse cx="60" cy="208" rx="14" ry="22" fill="white" opacity="0.1" transform="rotate(-20 60 208)"/>
+                    <!-- Rosette / sound hole border -->
+                    <circle cx="75" cy="234" r="25" fill="#7a3e18" opacity="0.9"/>
+                    <circle cx="75" cy="234" r="20" fill="#c0632a"/>
+                    <circle cx="75" cy="234" r="16" fill="#8c4820" opacity="0.6"/>
+                    <!-- Bridge -->
+                    <rect x="57" y="275" width="36" height="9" rx="4.5" fill="#5a2d0c"/>
+                    <!-- Strings -->
+                    <line x1="70" y1="47" x2="68" y2="283" stroke="#f0ddb0" stroke-width="1.1" opacity="0.85"/>
+                    <line x1="73.5" y1="47" x2="72" y2="283" stroke="#f0ddb0" stroke-width="0.9" opacity="0.85"/>
+                    <line x1="76.5" y1="47" x2="78" y2="283" stroke="#f0ddb0" stroke-width="0.9" opacity="0.85"/>
+                    <line x1="80" y1="47" x2="82" y2="283" stroke="#f0ddb0" stroke-width="1.1" opacity="0.85"/>
+                    <!-- String tie points on bridge -->
+                    <circle cx="68" cy="281" r="2" fill="#f0ddb0" opacity="0.7"/>
+                    <circle cx="72" cy="281" r="2" fill="#f0ddb0" opacity="0.7"/>
+                    <circle cx="78" cy="281" r="2" fill="#f0ddb0" opacity="0.7"/>
+                    <circle cx="82" cy="281" r="2" fill="#f0ddb0" opacity="0.7"/>
+                </svg>
+            </div>
+            <div class="uke-hint">🎸 нажми, чтобы сыграть!</div>
+        </div>
+
+        <!-- Photo gallery -->
+        <div class="gallery">
+            <div class="gallery-heading">📸 классные моменты с папой</div>
+            <div class="slideshow" id="slideshow">
+                <button class="snav prev" onclick="changeSlide(-1)">‹</button>
+                <button class="snav next" onclick="changeSlide(1)">›</button>
+                <div class="scounter" id="counter">1 / 11</div>
+            </div>
+            <div class="thumbs" id="thumbs"></div>
+        </div>
+
+        <!-- Message -->
+        <div class="msg">
+            <span class="msg-hearts">❤️ 🎵 ❤️</span>
+            <div class="msg-text">
+                Папа, спасибо тебе за то, какой ты есть<br>
+                и за то, что ты делаешь для нас!<br><br>
+                Мы тебя с девочками очень любим!<br><br>
+                С Днём Отца!<br>
+                <span style="font-style:italic; opacity:0.9;">¡Feliz Día del Padre!</span> 🎶
+            </div>
+            <div class="msg-guitars">🎸 ✨ 🎸</div>
+            <div class="msg-sign">С любовью, всегда ♪</div>
+            <div style="margin-top: 20px; font-size: 0.95rem; font-weight: 600; opacity: 0.8; letter-spacing: 0.04em;">От Арины, 21.06.2026</div>
+        </div>
+
+        <div class="footer">Счастливого Дня Отца! 🎵</div>
+
+    </div>
+</div>
+
+<script>
+    /* ─── Audio (Web Audio API, no external files) ─── */
+    let audioCtx = null;
+    let chordIdx = 0;
+
+    // Ukulele chords: C → F → Am → G7 → cycle
+    const chords = [
+        [261.63, 329.63, 392.00, 523.25],   // C major
+        [349.23, 440.00, 523.25, 698.46],   // F major
+        [440.00, 523.25, 659.25, 880.00],   // A minor
+        [392.00, 493.88, 587.33, 698.46],   // G7
+    ];
+
+    function getCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+    }
+
+    function pluckNote(freq, vol, delay) {
+        const ctx = getCtx();
+        const t = ctx.currentTime + delay;
+
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(vol, t);
+        master.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+        master.connect(ctx.destination);
+
+        // Fundamental + 2 harmonics for warmth
+        [1, 2, 3].forEach((h, i) => {
+            const osc = ctx.createOscillator();
+            const g   = ctx.createGain();
+            osc.type = i === 0 ? 'triangle' : 'sine';
+            osc.frequency.value = freq * h;
+            g.gain.setValueAtTime(vol * [1, 0.42, 0.16][i], t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2 / h);
+            osc.connect(g);
+            g.connect(master);
+            osc.start(t);
+            osc.stop(t + 2.8);
+        });
+
+        // Sharp pluck transient (pick attack)
+        const tr  = ctx.createOscillator();
+        const trg = ctx.createGain();
+        tr.type = 'sawtooth';
+        tr.frequency.value = freq * 2;
+        trg.gain.setValueAtTime(vol * 0.5, t);
+        trg.gain.exponentialRampToValueAtTime(0.0001, t + 0.022);
+        tr.connect(trg);
+        trg.connect(ctx.destination);
+        tr.start(t);
+        tr.stop(t + 0.03);
+    }
+
+    function strumSound() {
+        const chord = chords[chordIdx % chords.length];
+        chordIdx++;
+        chord.forEach((freq, i) => pluckNote(freq, 0.2, i * 0.042));
+    }
+
+    function openingSound() {
+        const ctx = getCtx();
+
+        // Paper rustle (filtered white noise)
+        const bufLen = Math.floor(ctx.sampleRate * 0.65);
+        const buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+        const data   = buf.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+
+        const noiseSrc = ctx.createBufferSource();
+        noiseSrc.buffer = buf;
+
+        const bpf = ctx.createBiquadFilter();
+        bpf.type = 'bandpass';
+        bpf.frequency.value = 1600;
+        bpf.Q.value = 1.8;
+
+        const ng = ctx.createGain();
+        ng.gain.setValueAtTime(0, ctx.currentTime);
+        ng.gain.linearRampToValueAtTime(0.09, ctx.currentTime + 0.06);
+        ng.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+
+        noiseSrc.connect(bpf);
+        bpf.connect(ng);
+        ng.connect(ctx.destination);
+        noiseSrc.start();
+
+        // Ascending harp/ukulele notes — C major scale flourish
+        [523.25, 659.25, 783.99, 880.00, 1046.50].forEach((f, i) => {
+            pluckNote(f, 0.13, 0.18 + i * 0.1);
+        });
+    }
+
+    /* ─── Photos ─── */
+    const photos = [
+        { src: 'photo_2026-06-21 14.06.16.jpeg',
+          caption: 'это он со своим другом Пимом 🎓' },
+        { src: 'photo_2026-06-21 14.06.11.jpeg',
+          caption: 'папа и его любимая дочь — всегда найдём повод для прогулки 💛' },
+        { src: 'photo_2026-06-21 14.06.33.jpeg',
+          caption: 'папа подружился с Эмиром 😸' },
+        { src: 'photo_2026-06-21 14.06.41.jpeg',
+          caption: 'папа с мамой уже покорили Аргентину — и кажется, им там нравится ☀️🇦🇷' },
+        { src: 'photo_2026-06-21 14.07.24.jpeg',
+          caption: 'папа медитирует и радуется аргентинской жизни 🧘' },
+        { src: 'photo_2026-06-21 14.05.46.jpeg',
+          caption: 'папа всё ещё любит учиться и что-то учит 📚' },
+        { src: 'photo_2026-06-21 14.05.16.jpeg',
+          caption: 'у него настолько аргентинская жизнь, что он вновь полюбил футбол ⚽' },
+        { src: 'photo_2026-06-21 14.04.37.jpeg',
+          caption: 'кот сам пришёл обниматься. папа, конечно, не против ❤️🐈‍⬛' },
+        { src: 'photo_2026-06-21 14.04.44.jpeg',
+          caption: 'папа и мама — стиль и романтика не требуют повода 🪞✨' },
+        { src: 'photo_2026-06-21 14.04.30.jpeg',
+          caption: 'кот занял весь диван. папа не возражает — ему тут хорошо 🐈‍⬛💤' },
+        { src: 'photo_2026-06-21 14.05.07.jpeg',
+          caption: 'кофе с мамой в Буэнос-Айресе — вот это и есть счастье ☕🥐' },
+    ];
+
+    let cur = 0, timer;
+
+    /* build slideshow */
+    const ss = document.getElementById('slideshow');
+    const thumbsEl = document.getElementById('thumbs');
+
+    photos.forEach((p, i) => {
+        /* slide */
+        const sl = document.createElement('div');
+        sl.className = 'slide' + (i === 0 ? ' active' : '');
+        const im = document.createElement('img');
+        im.src = p.src;
+        im.alt = 'Фото ' + (i + 1);
+        sl.appendChild(im);
+        const cap = document.createElement('div');
+        cap.className = 'slide-caption';
+        cap.textContent = p.caption;
+        sl.appendChild(cap);
+        ss.insertBefore(sl, ss.querySelector('.snav'));
+
+        /* thumb */
+        const th = document.createElement('div');
+        th.className = 'thumb' + (i === 0 ? ' active' : '');
+        th.onclick = () => goTo(i);
+        const ti = document.createElement('img');
+        ti.src = p.src;
+        ti.alt = '';
+        th.appendChild(ti);
+        thumbsEl.appendChild(th);
+    });
+
+    function updateSlide() {
+        document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === cur));
+        document.querySelectorAll('.thumb').forEach((t, i) => t.classList.toggle('active', i === cur));
+        document.getElementById('counter').textContent = (cur + 1) + ' / ' + photos.length;
+        /* scroll active thumb into view */
+        thumbsEl.children[cur]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+
+    function changeSlide(d) { cur = (cur + d + photos.length) % photos.length; updateSlide(); resetTimer(); }
+    function goTo(i) { cur = i; updateSlide(); resetTimer(); }
+    function resetTimer() { clearInterval(timer); timer = setInterval(() => changeSlide(1), 3800); }
+
+    /* ─── Background floating notes (envelope screen) ─── */
+    const bgNoteEl = document.getElementById('bgNotes');
+    const noteChars = ['♩','♪','♫','♬','🎵','🎶'];
+    const noteColors = ['rgba(255,255,255,0.7)','rgba(255,230,100,0.7)','rgba(255,200,60,0.8)'];
+
+    function spawnBg() {
+        const n = document.createElement('div');
+        n.className = 'bg-note';
+        n.textContent = noteChars[Math.floor(Math.random() * noteChars.length)];
+        n.style.left = (4 + Math.random() * 92) + 'vw';
+        n.style.bottom = '-60px';
+        n.style.fontSize = (1 + Math.random() * 2) + 'rem';
+        n.style.color = noteColors[Math.floor(Math.random() * noteColors.length)];
+        const dur = 4 + Math.random() * 5;
+        n.style.animationDuration = dur + 's';
+        n.style.animationDelay = Math.random() * 1.5 + 's';
+        bgNoteEl.appendChild(n);
+        setTimeout(() => n.remove(), (dur + 2) * 1000);
+    }
+    const bgTimer = setInterval(spawnBg, 550);
+
+    /* ─── Card screen floating notes ─── */
+    const cardNoteEl = document.getElementById('cardNotes');
+    let cardNoteTimer;
+
+    function spawnCard() {
+        const n = document.createElement('div');
+        n.className = 'card-note';
+        n.textContent = noteChars[Math.floor(Math.random() * noteChars.length)];
+        n.style.left = (3 + Math.random() * 94) + 'vw';
+        n.style.bottom = '-50px';
+        n.style.fontSize = (0.9 + Math.random() * 1.4) + 'rem';
+        n.style.color = ['rgba(200,92,26,0.25)','rgba(247,107,28,0.2)','rgba(245,166,35,0.3)'][Math.floor(Math.random()*3)];
+        const dur = 6 + Math.random() * 7;
+        n.style.animationDuration = dur + 's';
+        cardNoteEl.appendChild(n);
+        setTimeout(() => n.remove(), (dur + 1) * 1000);
+    }
+
+    /* ─── Open envelope ─── */
+    let envOpened = false;
+    function openEnvelope() {
+        if (envOpened) return;
+        envOpened = true;
+        try { openingSound(); } catch(e) {}
+        document.getElementById('envelope').classList.add('opened');
+
+        setTimeout(() => {
+            document.getElementById('envelope-screen').classList.add('hide');
+            document.getElementById('card-screen').classList.add('show');
+            clearInterval(bgTimer);
+            confettiBurst();
+            resetTimer();
+            cardNoteTimer = setInterval(spawnCard, 900);
+        }, 1050);
+    }
+
+    /* ─── Confetti ─── */
+    function confettiBurst() {
+        const cols = ['#f5a623','#f76b1c','#ffd166','#ff6b6b','#a8e6cf','#88d8c0','#fff','#ffbc3b'];
+        for (let i = 0; i < 90; i++) {
+            setTimeout(() => {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = (Math.random() * 100) + 'vw';
+                c.style.top = '-30px';
+                c.style.width  = (5 + Math.random() * 9) + 'px';
+                c.style.height = (5 + Math.random() * 9) + 'px';
+                c.style.borderRadius = Math.random() > 0.4 ? '50%' : '2px';
+                c.style.background = cols[Math.floor(Math.random() * cols.length)];
+                c.style.animationDuration = (2.2 + Math.random() * 3) + 's';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 6000);
+            }, i * 35);
+        }
+    }
+
+    /* ─── Strum ukulele ─── */
+    function strum(e) {
+        try { strumSound(); } catch(e) {}
+        const wrap = document.getElementById('ukulele');
+        wrap.classList.remove('strumming');
+        void wrap.offsetWidth;
+        wrap.classList.add('strumming');
+        setTimeout(() => wrap.classList.remove('strumming'), 500);
+
+        const r = wrap.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top  + r.height / 2;
+
+        const display = ['♩','♪','♫','♬','🎵','🎶','🎸','✨'];
+        for (let i = 0; i < 10; i++) {
+            const n = document.createElement('div');
+            n.className = 'fly-note';
+            n.textContent = display[Math.floor(Math.random() * display.length)];
+            const angle = (Math.random() * 360) * Math.PI / 180;
+            const dist  = 70 + Math.random() * 130;
+            n.style.setProperty('--tx', (Math.cos(angle) * dist) + 'px');
+            n.style.setProperty('--ty', (Math.sin(angle) * dist) + 'px');
+            n.style.setProperty('--rot', (Math.random() * 400 - 200) + 'deg');
+            n.style.left = cx + 'px';
+            n.style.top  = cy + 'px';
+            n.style.color = ['#f5a623','#f76b1c','#b84e0f','#ffd166','#ff6b6b'][Math.floor(Math.random()*5)];
+            n.style.animationDelay = (i * 0.055) + 's';
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 2000);
+        }
+    }
+</script>
+</body>
+</html>
